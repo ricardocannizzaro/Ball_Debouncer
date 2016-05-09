@@ -81,10 +81,52 @@ enum STATE SYSTEM_STATE;
   time_t timestamp;
 };
 
+
 PI_THREAD (environmentMonitorThread)
 {
 	for (;;){
 		printf ("environmentMonitorThread running\n") ;
+		delay (1000) ;
+	}
+}
+
+
+PI_THREAD (loggerThread)
+{	
+	long MAX_SYSTEM_LOG_ENTRIES = 10000;
+	int MAX_NUM_ADD_REQUESTS = 10;
+	int MAX_NUM_GET_REQUESTS = 10;
+	
+	//t_event systemLog[MAX_SYSTEM_LOG_ENTRIES];	// the system log
+	int 	numSystemLogEvents = 0;				// the number of entries in the system log
+	//t_event addRequests[MAX_NUM_ADD_REQUESTS];	// the queue to add events to the log
+	int 	numAddRequests = 0;					// the number of events waiting on the add queue
+	//t_event getRequests[MAX_NUM_GET_REQUESTS];	// the queue to get events from the log
+	int 	numGetRequests = 0;					// the number of events waiting on the get queue
+	
+	for (;;){
+		printf ("loggerThread running\n") ;
+		if(numSystemLogEvents < MAX_SYSTEM_LOG_ENTRIES){
+			if(numAddRequests > 0 && numAddRequests < MAX_NUM_ADD_REQUESTS){
+				// take the first element to the system log
+				//systemLog[numSystemLogEvents] = addRequests[0];
+				// TODO remove the first element
+			}
+			else{
+				// no requests to add events to the system log. do nothing.
+			}
+			
+			
+			if(numGetRequests > 0 && numGetRequests < MAX_NUM_GET_REQUESTS){
+				// TODO: search for a request and return it ?, then remove the first element
+			}
+			else{
+				// no requests to get events to the system log. do nothing.
+			}
+		}
+		else{
+			printf ("Error - Too many system log entries\n") ;
+		}
 		delay (1000) ;
 	}
 }
@@ -100,6 +142,7 @@ int main (void)
   SYSTEM_STATE = STARTING_UP;
   
   piThreadCreate (environmentMonitorThread) ;	// create environmentMonitorThread
+  piThreadCreate (loggerThread) ;
   
   int gotOne, pin ;
   int myCounter [8] ;
