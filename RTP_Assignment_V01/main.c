@@ -120,8 +120,6 @@ PI_THREAD (environmentMonitorThread)
 
 PI_THREAD (loggerThread)
 {	
-	
-	
 	for (;;){
 		printf ("loggerThread running\n") ;
 		if(numSystemLogEvents < MAX_SYSTEM_LOG_ENTRIES){
