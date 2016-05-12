@@ -4,7 +4,16 @@
 /* our servo wrapper */
 
 //NOTE: to use this the following files must be added to the project
-//PCA9685.h,PCA9685.c //from https://github.com/TeraHz/PCA9685
+//PCA9685.h,PCA9685.cpp from https://github.com/TeraHz/PCA9685
+//I2C.h, I2C.cpp from https://github.com/TeraHz/I2C/tree/master/src
+
+/*
+I've got this to compile currently by adding both PCA9685 and I2C files
+into this project (as source and header files). This is bad, these files should
+be included in the project settings somewhere like you would normally include
+a library. But this works in the meantime
+*/
+
 
 #define SERVO_BUS (0)
 #define SERVO_ADDRESS (0x40)
@@ -13,19 +22,29 @@
 #define SERVO_CLOSED_PWM_VALUE (0)
 #define SERVO_OPEN_PWM_VALUE (4095)
 
-//intiaialises the servo system
-void servoInitialise();
+class PCA9685;
 
-//destroys the servo system
-void servoFinalise();
+class servo
+{
+private:
+    static PCA9685 * _servo_controller;
+public:
 
-//moves the servo to the open position
-void servoOpen();
+    //intiaialises the servo system
+    static void Initialise();
 
-//moves the servo to the closed position
-void servoClose();
+    //destroys the servo system
+    static void Finalise();
 
-//[0.0,1.0]
-void servoSetPos(float percentage_open);
+    //moves the servo to the open position
+    static void Open();
+
+    //moves the servo to the closed position
+    static void Close();
+
+    //set the percentage the servo is fully open, valid value between [0.0,1.0]
+    static void SetPos(float percentage_open);
+};
+
 
 #endif //SERVO_H

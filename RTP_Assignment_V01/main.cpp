@@ -35,7 +35,7 @@
 #include <string.h>
 #include <errno.h>
 #include <stdlib.h>
-#include <wiringPi.h>
+#include <wiringPi.h> //remember to use the compiler flag -lwiringPi
 #include <time.h>
 #include <string.h>
 #include "servo.h"
@@ -82,22 +82,22 @@ void myInterrupt7 (void) { ++globalCounter [7] ; }
  *********************************************************************************
  */
 
-enum STATE { 
-	STARTING_UP, 
-	WAITING_FOR_BOUNCE, 
-	DEBOUNCING, 
-	CHECKING_RESULT, 
-	RESTARTING, 
-	ENDING_PROGRAM, 
+enum STATE {
+	STARTING_UP,
+	WAITING_FOR_BOUNCE,
+	DEBOUNCING,
+	CHECKING_RESULT,
+	RESTARTING,
+	ENDING_PROGRAM,
 	EMERGENCY_STOP	};
-	
-enum EVENT_TYPE { 
-	SYSTEM_EVENT, 
-	LIGHT_SENSOR_EVENT, 
-	FLOOR_SENSOR_EVENT, 
+
+enum EVENT_TYPE {
+	SYSTEM_EVENT,
+	LIGHT_SENSOR_EVENT,
+	FLOOR_SENSOR_EVENT,
 	SERVO_EVENT,
 	ALARM_EVENT };
-	
+
 enum SERVO_COMMAND { OPEN, CLOSE };	// used to communicate to servo function
 
 enum STATE SYSTEM_STATE;
@@ -106,7 +106,7 @@ enum STATE SYSTEM_STATE;
  * structs:
  *********************************************************************************
  */
- 
+
  struct event_s {
   enum EVENT_TYPE type;
   int data[10];
@@ -137,7 +137,7 @@ PI_THREAD (environmentMonitorThread)
 
 
 PI_THREAD (loggerThread)
-{	
+{
 	for (;;){
 		printf ("loggerThread running\n") ;
 		if(numSystemLogEvents < MAX_SYSTEM_LOG_ENTRIES){
@@ -158,8 +158,8 @@ PI_THREAD (loggerThread)
 				// too many add requests
 				printf ("Max number of add requests exceeded\n") ;
 			}
-			
-			
+
+
 			if(numGetRequests > 0 && numGetRequests < MAX_NUM_GET_REQUESTS){
 				// TODO: search for a request and return it ?, then remove the first element
 			}
@@ -176,12 +176,12 @@ PI_THREAD (loggerThread)
 
 void setServoState(enum SERVO_COMMAND command){
 	// function to handle the PWM Hat servo control
-	
+
 	if( command == OPEN){
-		servoOpen();
+		servo::Open();
 	}
 	if( command == CLOSE){
-		servoClose();
+		servo::Close();
 	}
 }
 
@@ -194,16 +194,16 @@ void setServoState(enum SERVO_COMMAND command){
 int main (void)
 {
   SYSTEM_STATE = STARTING_UP;
-  
+
   //piThreadCreate (environmentMonitorThread) ;	// create & run environmentMonitorThread
   piThreadCreate (loggerThread) ;				// create & run loggerThread
-  
+
   int gotOne, pin ;
   int myCounter [8] ;
   //enum SERVO_COMMAND servoCommand = OPEN;		// initialise to open
   // TODO send command to open the lid
 
-  for (pin = 0 ; pin < 8 ; ++pin) 
+  for (pin = 0 ; pin < 8 ; ++pin)
     globalCounter [pin] = myCounter [pin] = 0 ;
 
   wiringPiSetup () ;
@@ -216,28 +216,28 @@ int main (void)
   wiringPiISR (5, INT_EDGE_FALLING, &myInterrupt5) ;
   wiringPiISR (6, INT_EDGE_FALLING, &myInterrupt6) ;
   wiringPiISR (7, INT_EDGE_FALLING, &myInterrupt7) ;
-  
+
   //setup servo
-  servoInitialise();
-  
+  servo::Initialise();
+
   // create a test event
   struct event_s myEvent;
   myEvent.type = SYSTEM_EVENT;
   myEvent.data[0] = 9;
   myEvent.description[0] = 'H';
   myEvent.timestamp = time(NULL); // the current time
-  
+
   addRequests[0] = myEvent;
   numAddRequests = numAddRequests + 1;
-	
+
 	SYSTEM_STATE = WAITING_FOR_BOUNCE;	// setup complete, transition to WAITING_FOR_BOUNCE state
 	// main loop starts here
-	
+
   for (;;)
   {
-    
+
     if(SYSTEM_STATE == WAITING_FOR_BOUNCE){
-    
+
 		gotOne = 0 ;
 		printf ("Waiting ... ") ; fflush (stdout) ;
 
