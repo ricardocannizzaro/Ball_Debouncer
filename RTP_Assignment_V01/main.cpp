@@ -201,7 +201,7 @@ int main (void)
 
   int gotOne, pin ;
   int myCounter [8] ;
-  
+
   //enum SERVO_COMMAND servoCommand = OPEN;		// initialise to open
   // TODO send command to open the lid
 
@@ -222,10 +222,10 @@ int main (void)
   //setup servo
   servo::Initialise();
   servo::Open();
-  
+
   //setup LCD screen
   LCD::Initialise();
-  
+
   // create a test event
   struct event_s myEvent;
   myEvent.type = SYSTEM_EVENT;

@@ -1,5 +1,5 @@
 #include "rgb_lcd.h"
-#include <wiringPi.h>
+#include <mcp23017.h>
 #include <lcd.h>
 
 int LCD::_handle;

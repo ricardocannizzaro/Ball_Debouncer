@@ -1,5 +1,5 @@
-#ifndef SERVO_H
-#define SERVO_H
+#ifndef RGB_LCD_H
+#define RGB_LCD_H
 
 /* our LCD wrapper */
 
@@ -8,6 +8,12 @@ using the wiring pi lcd library https://projects.drogon.net/raspberry-pi/wiringp
 
 /*
 TODO: implement color changing https://git.drogon.net/?p=wiringPi;a=blob_plain;f=examples/lcd-adafruit.c;hb=refs/heads/master
+
+
+NOTE: i only got this working
+after adding usr/local/lib/libwiringPi.o & libwiringPiDev.o libs
+in the projet settings following
+project/build-options/linker-settings/link-libraries
 */
 
 //NOTE: following is a macro to use the LCD screens printf function
@@ -40,20 +46,20 @@ class LCD
 {
 	public:
 	static int _handle;
-	
+
 	//initialise the screen
 	static void Initialise();
-	
+
 	//destroy the screen
 	static void Finalise();
-	
+
 	//clears the screen and resets cursor position
 	static void Clear();
-	
+
 	//prints text on the screen
 	//NOTE: you can also use lcdprintf(args..)
 	static void Print(const char * text);
 
 };
 
-#endif //SERVO_H
+#endif //RGB_LCD_H
