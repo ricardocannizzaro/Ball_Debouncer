@@ -39,6 +39,7 @@
 #include <time.h>
 #include <string.h>
 #include "servo.h"
+#include "rgb_lcd.h"
 
 // globalCounter:
 //	Global variable to count interrupts
@@ -200,6 +201,7 @@ int main (void)
 
   int gotOne, pin ;
   int myCounter [8] ;
+  
   //enum SERVO_COMMAND servoCommand = OPEN;		// initialise to open
   // TODO send command to open the lid
 
@@ -219,7 +221,11 @@ int main (void)
 
   //setup servo
   servo::Initialise();
-
+  servo::Open();
+  
+  //setup LCD screen
+  LCD::Initialise();
+  
   // create a test event
   struct event_s myEvent;
   myEvent.type = SYSTEM_EVENT;
@@ -230,9 +236,10 @@ int main (void)
   addRequests[0] = myEvent;
   numAddRequests = numAddRequests + 1;
 
-	SYSTEM_STATE = WAITING_FOR_BOUNCE;	// setup complete, transition to WAITING_FOR_BOUNCE state
+  SYSTEM_STATE = WAITING_FOR_BOUNCE;	// setup complete, transition to WAITING_FOR_BOUNCE state
 	// main loop starts here
 
+  LCD::Print("Waiting for bounce");
   for (;;)
   {
 
@@ -260,6 +267,8 @@ int main (void)
 	}
 	else if(SYSTEM_STATE == DEBOUNCING){
 		printf ("Debouncing\n") ;
+		LCD::Clear();
+		LCD::Print("Debouncing\n");
 		// while (not closed & not timeout) (Or maybe just implement a 1-2 second delay)
 		// 		stay in state
 		//		close lid
@@ -268,6 +277,8 @@ int main (void)
 	}
 	else if(SYSTEM_STATE == CHECKING_RESULT){
 		printf ("Checking result\n") ;
+		LCD::Clear();
+		LCD::Print("Checking result\n");
 		// if timeout, then update system log with timeout
 		// if lid closed
 		//		if (floor sensor pressed), then update system log with success
@@ -279,17 +290,23 @@ int main (void)
 	}
 	else if(SYSTEM_STATE == RESTARTING){
 		printf ("Restarting / preparing for next bounce\n") ;
+		LCD::Clear();
+		LCD::Print("Restarting / preparing for next bounce\n");
 		// open the lid
 		// enter WAITING_FOR_BOUNCE state
 		SYSTEM_STATE = WAITING_FOR_BOUNCE;
 	}
 	else if(SYSTEM_STATE == ENDING_PROGRAM){
 		printf ("Ending program\n") ;
+		LCD::Clear();
+		LCD::Print("Ending program\n");
 		// run end program tasks
 		return 0;
 	}
 	else if(SYSTEM_STATE == EMERGENCY_STOP){
 		printf ("Emergency Stop\n") ;
+		LCD::Clear();
+		LCD::Print("Emergency Stop\n");
 		// run end program tasks
 		return 0;
 	}
