@@ -38,6 +38,7 @@
 #include <wiringPi.h>
 #include <time.h>
 #include <string.h>
+#include "servo.h"
 
 // globalCounter:
 //	Global variable to count interrupts
@@ -56,14 +57,17 @@ static volatile int globalCounter [8] ;
 //	which is hiding some of that to make life simple.
 #define LOGGER_KEY 0
 
-
-
+/*
+ * Pins:
+ *********************************************************************************
+ */
+#define PIN_LIGHT_SENSOR (0)
 /*
  * Interrupts:
  *********************************************************************************
  */
 
-void lightSensorInterrupt (void) { ++globalCounter [0] ; }
+void lightSensorInterrupt (void) { ++globalCounter [PIN_LIGHT_SENSOR] ; }
 void myInterrupt1 (void) { ++globalCounter [1] ; }
 void myInterrupt2 (void) { ++globalCounter [2] ; }
 void myInterrupt3 (void) { ++globalCounter [3] ; }
@@ -78,8 +82,22 @@ void myInterrupt7 (void) { ++globalCounter [7] ; }
  *********************************************************************************
  */
 
-enum STATE { STARTING_UP, WAITING_FOR_BOUNCE, DEBOUNCING, CHECKING_RESULT, RESTARTING, ENDING_PROGRAM, EMERGENCY_STOP };
-enum EVENT_TYPE { SYSTEM_EVENT, LIGHT_SENSOR_EVENT, FLOOR_SENSOR_EVENT, SERVO_EVENT, ALARM_EVENT };
+enum STATE { 
+	STARTING_UP, 
+	WAITING_FOR_BOUNCE, 
+	DEBOUNCING, 
+	CHECKING_RESULT, 
+	RESTARTING, 
+	ENDING_PROGRAM, 
+	EMERGENCY_STOP	};
+	
+enum EVENT_TYPE { 
+	SYSTEM_EVENT, 
+	LIGHT_SENSOR_EVENT, 
+	FLOOR_SENSOR_EVENT, 
+	SERVO_EVENT,
+	ALARM_EVENT };
+	
 enum SERVO_COMMAND { OPEN, CLOSE };	// used to communicate to servo function
 
 enum STATE SYSTEM_STATE;
@@ -160,10 +178,10 @@ void setServoState(enum SERVO_COMMAND command){
 	// function to handle the PWM Hat servo control
 	
 	if( command == OPEN){
-		// TODO - command motor to open
+		servoOpen();
 	}
 	if( command == CLOSE){
-		// TODO - command motor to close
+		servoClose();
 	}
 }
 
@@ -190,7 +208,7 @@ int main (void)
 
   wiringPiSetup () ;
 
-  wiringPiISR (0, INT_EDGE_FALLING, &lightSensorInterrupt) ;
+  wiringPiISR (PIN_LIGHT_SENSOR, INT_EDGE_FALLING, &lightSensorInterrupt) ;
   wiringPiISR (1, INT_EDGE_FALLING, &myInterrupt1) ;
   wiringPiISR (2, INT_EDGE_FALLING, &myInterrupt2) ;
   wiringPiISR (3, INT_EDGE_FALLING, &myInterrupt3) ;
@@ -198,6 +216,9 @@ int main (void)
   wiringPiISR (5, INT_EDGE_FALLING, &myInterrupt5) ;
   wiringPiISR (6, INT_EDGE_FALLING, &myInterrupt6) ;
   wiringPiISR (7, INT_EDGE_FALLING, &myInterrupt7) ;
+  
+  //setup servo
+  servoInitialise();
   
   // create a test event
   struct event_s myEvent;
