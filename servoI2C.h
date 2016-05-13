@@ -17,7 +17,7 @@
 #define ALL_LED_OFF_L       (0xFC)
 #define ALL_LED_OFF_H       (0xFD)
 
-// Bits:                     
+// Bits:
 #define RESTART             (0x80)
 #define SLEEP               (0x10)
 #define ALLCALL             (0x01)
@@ -27,11 +27,12 @@
 class servoI2C
 {
 	static int fd;
-	static void reset();
-	static void set_pwm_freq(int hz);
-	static void set_pwm(int channel, int on, int off);
-	static void set_all_pwm(int on, int off);
-	static int init();
+	public:
+	static void Reset();
+	static void SetPWMFrequency(int hz);
+	static void SetPWM(int channel, int on, int off);
+	static void SetAllPWM(int on, int off);
+	static int Initialise();
 };
 
 #endif

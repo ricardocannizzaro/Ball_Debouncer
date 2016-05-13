@@ -22,7 +22,7 @@ gpio -x gpio -x mcp3008:200:0 aread 200
 
 //#define SERVO_BUS (1)
 //#define SERVO_ADDRESS (0x40)
-//#define SERVO_CHANNEL (1)
+#define SERVO_CHANNEL (1)
 #define SERVO_DEFAULT_FREQ (60)
 #define SERVO_CLOSED_PWM_VALUE (3900) // (0)
 #define SERVO_OPEN_PWM_VALUE (4095)//(4095)     // TODO check if these tick values are correct for our motor!

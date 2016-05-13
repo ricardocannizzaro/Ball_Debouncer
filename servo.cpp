@@ -3,11 +3,9 @@
 #include <mcp3004.h>
 #include <wiringPi.h>
 
-PCA9685 * servo::_servo_controller;
-
 void servo::Initialise()
 {
-	servoI2C::Initialise();
+	bool succeeded = (servoI2C::Initialise() == 1);
 	servoI2C::SetPWMFrequency(SERVO_DEFAULT_FREQ);
 	mcp3004Setup(ADC_BASE,ADC_SPI_CHANNEL);
 }

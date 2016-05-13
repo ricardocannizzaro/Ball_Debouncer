@@ -17,7 +17,7 @@ void servoI2C::SetPWMFrequency(int hz)
     prescaleval /= 4096.0;       //# 12-bit
     prescaleval /= float(hz);
     prescaleval -= 1.0;
-    prescale = prescaleval;//int(math.floor(prescaleval + 0.5))
+    int prescale = prescaleval;//int(math.floor(prescaleval + 0.5))
     int oldmode = wiringPiI2CReadReg8(fd,MODE1);
     int newmode = (oldmode & 0x7F) | 0x10    ;// sleep
     wiringPiI2CWriteReg8(fd,MODE1, newmode)  ;// go to sleep
@@ -46,7 +46,7 @@ void servoI2C::SetAllPWM(int on, int off)
 int servoI2C::Initialise()
 {
 	fd = 0;
-	if (fd = wiringPiI2CSetup(PWM_ADDRESS) < 0)
+	if ((fd = wiringPiI2CSetup(PCA9685_ADDRESS)) < 0)
 	{
 		return 0;
 	}
@@ -55,7 +55,8 @@ int servoI2C::Initialise()
     wiringPiI2CWriteReg8(fd,MODE1, ALLCALL);
     delay(5);//  # wait for oscillator
     int mode1 = wiringPiI2CReadReg8(fd,MODE1);
-    mode1 = mode1 & ~SLEEP  // wake up (reset sleep)
+    mode1 = mode1 & ~SLEEP;  // wake up (reset sleep)
     wiringPiI2CWriteReg8(fd,MODE1, mode1);
     delay(5);
+    return 1;
 }
