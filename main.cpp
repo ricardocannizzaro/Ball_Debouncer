@@ -39,6 +39,7 @@
 #include <time.h>
 #include "servo.h"
 #include "rgb_lcd.h"
+#include <vector>
 
 // globalCounter:
 //	Global variable to count interrupts
@@ -93,6 +94,7 @@ enum STATE {
 
 enum EVENT_TYPE {       //TODO make system transition event types
 	SYSTEM_EVENT,
+	STATE_CHANGE,
 	LIGHT_SENSOR_FALLING_EDGE_EVENT,
 	FLOOR_SENSOR_EVENT,
 	SERVO_OPEN_EVENT,
@@ -110,7 +112,9 @@ enum STATE SYSTEM_STATE;
 
  struct event_s {
   enum EVENT_TYPE type;
-  int data[10];
+  enum STATE currentState;  // used to describe the state
+  enum STATE nextState;     // used in state change events
+  std::vector<int> data;
   std::string description;
   time_t timestamp;
 } ;
@@ -121,12 +125,10 @@ enum STATE SYSTEM_STATE;
  *********************************************************************************
  */
 
-struct event_s systemLog[MAX_SYSTEM_LOG_ENTRIES];	// the system log
-int 	numSystemLogEvents = 0;				// the number of entries in the system log
-struct event_s addRequests[MAX_NUM_ADD_REQUESTS];	// the queue to add events to the log
-int 	numAddRequests = 0;					// the number of events waiting on the add queue
-struct event_s getRequests[MAX_NUM_GET_REQUESTS];	// the queue to get events from the log
-int 	numGetRequests = 0;					// the number of events waiting on the get queue
+std::vector <event_s> systemLog;	// the system log
+std::vector <event_s> addEventsQueue;	// the queue to add events to the log
+//event_s getRequests[MAX_NUM_GET_REQUESTS];	// the queue to get events from the log   // TODO - work out how to return request results
+
 
 
 /*
@@ -147,32 +149,32 @@ PI_THREAD (loggerThread)
 {
 	for (;;){
 		printf ("loggerThread running\n") ;
-		if(numSystemLogEvents < MAX_SYSTEM_LOG_ENTRIES){
-			if(numAddRequests > 0 && numAddRequests < MAX_NUM_ADD_REQUESTS){
+		if(systemLog.size() < MAX_SYSTEM_LOG_ENTRIES){
+			if(addEventsQueue.size() > 0 && addEventsQueue.size() < MAX_NUM_ADD_REQUESTS){
 				printf ("processing event\n") ;
 				// take the first element and add it to the system log
-				systemLog[numSystemLogEvents] = addRequests[0];
-				numSystemLogEvents = numSystemLogEvents + 1;
-				// TODO remove the first element
-				// then decrement the number of add requests
-				numAddRequests = numAddRequests - 1;
+				systemLog.push_back(addEventsQueue[0]);
+
+				// remove the first element
+				addEventsQueue.erase(addEventsQueue.begin());
 			}
-			else if (numAddRequests <= 0){
+			else if (addEventsQueue.size() <= 0){
 				// no requests to add events to the system log. do nothing.
 				printf ("no requests to add events. doing nothing\n") ;
 			}
-			else if (numAddRequests >= MAX_NUM_ADD_REQUESTS){
+			else if (addEventsQueue.size() >= MAX_NUM_ADD_REQUESTS){
 				// too many add requests
 				printf ("Max number of add requests exceeded\n") ;
 			}
 
-
+            /*
+            // TODO - implement this once we figure out how to implement the Get_request vector
 			if(numGetRequests > 0 && numGetRequests < MAX_NUM_GET_REQUESTS){
 				// TODO: search for a request and return it ?, then remove the first element
 			}
 			else{
 				// no requests to get events to the system log. do nothing.
-			}
+			}*/
 		}
 		else{
 			printf ("Error - Too many system log entries\n") ;
@@ -203,7 +205,7 @@ int main (void)
   SYSTEM_STATE = STARTING_UP;
 
   //piThreadCreate (environmentMonitorThread) ;	// create & run environmentMonitorThread
-  piThreadCreate (loggerThread) ;				// create & run loggerThread
+  //piThreadCreate (loggerThread) ;				// create & run loggerThread
 
   int gotOne, pin ;
   int myCounter [8] ;
@@ -227,7 +229,18 @@ int main (void)
 
   //setup servo (static object)
   servo::Initialise();
-  servo::Open();                // initialise to openj
+  servo::Open();                // initialise to open
+
+    // test by doing a sweep
+    /*
+float pos;
+    for(pos = 0.00 ; pos <= 1; pos = pos + .05){
+        servo::SetPos(pos);
+        delay (100000) ;
+    }
+*/
+  bool TempBool = servo::IsOpen();
+  TempBool = servo::IsClosed();
 
   //setup LCD screen (static object)
   LCD::Initialise();
@@ -235,14 +248,18 @@ int main (void)
   // create a test event
   event_s myEvent;
   myEvent.type = SYSTEM_EVENT;
-  myEvent.data[0] = 9;
+  //myEvent.data[0] = 9;
   myEvent.description = "Test Event";
   myEvent.timestamp = time(NULL); // the current time
+  myEvent.currentState = SYSTEM_STATE;
 
-  addRequests[0] = myEvent;
-  numAddRequests = numAddRequests + 1;
+  addEventsQueue.push_back(myEvent);
+
+  delay (1000) ; //some time for everything to finish
 
   SYSTEM_STATE = WAITING_FOR_BOUNCE;	// setup complete, transition to WAITING_FOR_BOUNCE state
+ // SYSTEM_STATE = DEBOUNCING;    // debugging
+
 	// main loop starts here
 
   LCD::Print("Waiting for bounce");
@@ -276,18 +293,44 @@ int main (void)
 		LCD::Clear();
 		LCD::Print("Debouncing\n");
 
-		CloseLidStartTime = time(0);    // set the close lid start time as the current time
+		CloseLidStartTime = time(NULL);    // set the close lid start time as the current time
 
 		// command a close of the lid
 		servo::Close();
-		while (difftime(CloseLidStartTime,time(0))<=2){
+		//while (difftime(CloseLidStartTime,time(0))<=2 && !servo::IsClosed()){
+		while (difftime(time(NULL),CloseLidStartTime)<=2 ){
 		// while (not closed & not timeout) (Or maybe just implement a 1-2 second delay)
             // 		stay in state
             //		close lid
+            // essentially, do nothing;
 		}
 
-		// move to check result state
-		SYSTEM_STATE = CHECKING_RESULT;
+		if (!servo::IsClosed()){
+            // if the servo is not closed, we've timed out
+            // either call an emergency stop, or ask the user for input
+            printf ("servo close timed out\n") ;
+            myEvent.timestamp = time(0);
+            myEvent.currentState = SYSTEM_STATE;
+            myEvent.nextState = EMERGENCY_STOP;
+            myEvent.description = "Error: servo did not close during debouncing";
+            addEventsQueue.push_back(myEvent);
+
+            SYSTEM_STATE = EMERGENCY_STOP;  // update the system state
+		}
+		else{
+            // move to check result state
+            printf ("servo close success\n") ;
+            myEvent.timestamp = time(0);
+            myEvent.currentState = SYSTEM_STATE;
+            myEvent.nextState = CHECKING_RESULT;
+            myEvent.description = "Transitioning from debouncing state to checking result";
+            addEventsQueue.push_back(myEvent);
+
+            SYSTEM_STATE = CHECKING_RESULT;  // update the system state
+
+		}
+
+
 	}
 	else if(SYSTEM_STATE == CHECKING_RESULT){
 		printf ("Checking result\n") ;
@@ -307,6 +350,7 @@ int main (void)
 		LCD::Clear();
 		LCD::Print("Restarting / preparing for next bounce\n");
 		// open the lid
+		servo::Open();
 		// enter WAITING_FOR_BOUNCE state
 		SYSTEM_STATE = WAITING_FOR_BOUNCE;
 	}

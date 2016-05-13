@@ -26,7 +26,7 @@ void servo::Open()
 
 void servo::Close()
 {
-	_servo_controller->setPWM(SERVO_CHANNEL,SERVO_OPEN_PWM_VALUE);
+	_servo_controller->setPWM(SERVO_CHANNEL,SERVO_CLOSED_PWM_VALUE);
 }
 
 void servo::SetPos(float percentage_open)
@@ -50,12 +50,14 @@ int servo::GetServoPos()
 
 bool servo::IsOpen()
 {
-	bool result = GetServoPos() > SERVO_OPEN_THRESHOLD;
+    int servoPos = GetServoPos();
+	bool result = servoPos > SERVO_OPEN_THRESHOLD;
 	return result;
 }
 
 bool servo::IsClosed()
 {
-	bool result = GetServoPos() < SERVO_CLOSED_THRESHOLD;
+    int servoPos = GetServoPos();
+	bool result = servoPos < SERVO_CLOSED_THRESHOLD;
 	return result;
 }

@@ -25,15 +25,15 @@ gpio -x mcp3004:100:0 aread 100
 gpio -x gpio -x mcp3008:200:0 aread 200
 */
 
-#define SERVO_BUS (0)
-#define SERVO_ADDRESS (0x40)
-#define SERVO_CHANNEL (0)
-#define ADC_BASE (100)				//TODO: Check over these
+#define ADC_BASE (200)				//TODO: Check over these
 #define ADC_SPI_CHANNEL (0)
 #define ADC_POT_CHANNEL (0)         //the adc pin/channel the servo pot is connected to?
+#define SERVO_BUS (1)
+#define SERVO_ADDRESS (0x40)
+#define SERVO_CHANNEL (1)
 #define SERVO_DEFAULT_FREQ (60)
-#define SERVO_CLOSED_PWM_VALUE (0)
-#define SERVO_OPEN_PWM_VALUE (4095)     // TODO check if these tick values are correct for our motor!
+#define SERVO_CLOSED_PWM_VALUE (3900) // (0)
+#define SERVO_OPEN_PWM_VALUE (4095)//(4095)     // TODO check if these tick values are correct for our motor!
 #define SERVO_CLOSED_THRESHOLD (100)
 #define SERVO_OPEN_THRESHOLD (1024-100)
 
@@ -59,16 +59,16 @@ public:
 
     //set the percentage the servo is fully open, valid value between [0.0,1.0]
     static void SetPos(float percentage_open);
-	
+
 	//returns the position of the servo [0,1024]
 	static int GetServoPos();
-	
+
 	//returns the value of an adc input channel [0,1024]
 	static int GetAnalogInput(int adc_channel);
-	
+
 	//returns if the servo is open
 	static bool IsOpen();
-	
+
 	//returns if the servo is closed
 	static bool IsClosed();
 };
