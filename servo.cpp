@@ -1,6 +1,7 @@
 #include "servo.h"
 #include "PCA9685.h" //from https://github.com/TeraHz/PCA9685
 #include <mcp3004.h>
+#include <wiringPi.h>
 
 PCA9685 * servo::_servo_controller;
 
@@ -35,13 +36,13 @@ void servo::SetPos(float percentage_open)
 	_servo_controller->setPWM(SERVO_CHANNEL,v);
 }
 
-static int servo::GetAnalogInput(int adc_channel)
+int servo::GetAnalogInput(int adc_channel)
 {
-	int result = analogRead(ADC_BASE + adc_channel)
+	int result = analogRead(ADC_BASE + adc_channel);
 	return result;
 }
 
-static int servo::GetServoPos()
+int servo::GetServoPos()
 {
 	int result = GetAnalogInput(ADC_POT_CHANNEL);
 	return result;
@@ -52,7 +53,7 @@ bool servo::IsOpen()
 	bool result = GetServoPos() > SERVO_OPEN_THRESHOLD;
 	return result;
 }
-	
+
 bool servo::IsClosed()
 {
 	bool result = GetServoPos() < SERVO_CLOSED_THRESHOLD;
