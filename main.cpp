@@ -32,12 +32,11 @@
  */
 
 #include <stdio.h>
-#include <string.h>
+#include <string>
 #include <errno.h>
 #include <stdlib.h>
 #include <wiringPi.h> //remember to use the compiler flag -lwiringPi
 #include <time.h>
-#include <string.h>
 #include "servo.h"
 #include "rgb_lcd.h"
 
@@ -92,11 +91,12 @@ enum STATE {
 	ENDING_PROGRAM,
 	EMERGENCY_STOP	};
 
-enum EVENT_TYPE {
+enum EVENT_TYPE {       //TODO make system transition event types
 	SYSTEM_EVENT,
-	LIGHT_SENSOR_EVENT,
+	LIGHT_SENSOR_FALLING_EDGE_EVENT,
 	FLOOR_SENSOR_EVENT,
-	SERVO_EVENT,
+	SERVO_OPEN_EVENT,
+	SERVO_CLOSE_EVENT,
 	ALARM_EVENT };
 
 enum SERVO_COMMAND { OPEN, CLOSE };	// used to communicate to servo function
@@ -111,7 +111,7 @@ enum STATE SYSTEM_STATE;
  struct event_s {
   enum EVENT_TYPE type;
   int data[10];
-  char description[128];
+  std::string description;
   time_t timestamp;
 } ;
 
@@ -127,6 +127,12 @@ struct event_s addRequests[MAX_NUM_ADD_REQUESTS];	// the queue to add events to 
 int 	numAddRequests = 0;					// the number of events waiting on the add queue
 struct event_s getRequests[MAX_NUM_GET_REQUESTS];	// the queue to get events from the log
 int 	numGetRequests = 0;					// the number of events waiting on the get queue
+
+
+/*
+ * Time variable
+*/
+time_t CloseLidStartTime;
 
 PI_THREAD (environmentMonitorThread)
 {
@@ -219,18 +225,18 @@ int main (void)
   wiringPiISR (6, INT_EDGE_FALLING, &myInterrupt6) ;
   wiringPiISR (7, INT_EDGE_FALLING, &myInterrupt7) ;
 
-  //setup servo
+  //setup servo (static object)
   servo::Initialise();
-  servo::Open();
+  servo::Open();                // initialise to openj
 
-  //setup LCD screen
+  //setup LCD screen (static object)
   LCD::Initialise();
 
   // create a test event
-  struct event_s myEvent;
+  event_s myEvent;
   myEvent.type = SYSTEM_EVENT;
   myEvent.data[0] = 9;
-  myEvent.description[0] = 'H';
+  myEvent.description = "Test Event";
   myEvent.timestamp = time(NULL); // the current time
 
   addRequests[0] = myEvent;
@@ -269,9 +275,17 @@ int main (void)
 		printf ("Debouncing\n") ;
 		LCD::Clear();
 		LCD::Print("Debouncing\n");
+
+		CloseLidStartTime = time(0);    // set the close lid start time as the current time
+
+		// command a close of the lid
+		servo::Close();
+		while (difftime(CloseLidStartTime,time(0))<=2){
 		// while (not closed & not timeout) (Or maybe just implement a 1-2 second delay)
-		// 		stay in state
-		//		close lid
+            // 		stay in state
+            //		close lid
+		}
+
 		// move to check result state
 		SYSTEM_STATE = CHECKING_RESULT;
 	}

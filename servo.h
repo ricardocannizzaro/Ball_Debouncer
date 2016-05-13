@@ -21,7 +21,7 @@ a library. But this works in the meantime
 #define SERVO_CHANNEL (0)
 #define SERVO_DEFAULT_FREQ (60)
 #define SERVO_CLOSED_PWM_VALUE (0)
-#define SERVO_OPEN_PWM_VALUE (4095)
+#define SERVO_OPEN_PWM_VALUE (4095)     // TODO check if these tick values are correct for our motor!
 
 class PCA9685;
 
