@@ -1,5 +1,5 @@
 #include "servo.h"
-#include "PCA9685.h" //from https://github.com/TeraHz/PCA9685
+#include "servoI2C.h"
 #include <mcp3004.h>
 #include <wiringPi.h>
 
@@ -7,33 +7,31 @@ PCA9685 * servo::_servo_controller;
 
 void servo::Initialise()
 {
-	_servo_controller = 0;
-	_servo_controller = new PCA9685(SERVO_BUS,SERVO_ADDRESS);
-	_servo_controller->setPWMFreq(SERVO_DEFAULT_FREQ);
+	servoI2C::Initialise();
+	servoI2C::SetPWMFrequency(SERVO_DEFAULT_FREQ);
 	mcp3004Setup(ADC_BASE,ADC_SPI_CHANNEL);
 }
 
 void servo::Finalise()
 {
-	delete _servo_controller;
-	_servo_controller = 0;
+	servoI2C::Reset();
 }
 
 void servo::Open()
 {
-	_servo_controller->setPWM(SERVO_CHANNEL,SERVO_OPEN_PWM_VALUE);
+	servoI2C::SetPWM(SERVO_CHANNEL,0,SERVO_OPEN_PWM_VALUE);
 }
 
 void servo::Close()
 {
-	_servo_controller->setPWM(SERVO_CHANNEL,SERVO_CLOSED_PWM_VALUE);
+	servoI2C::SetPWM(SERVO_CHANNEL,0,SERVO_CLOSED_PWM_VALUE);
 }
 
 void servo::SetPos(float percentage_open)
 {
 	float v = (float)SERVO_CLOSED_PWM_VALUE +
 			(((float)SERVO_OPEN_PWM_VALUE - (float)SERVO_CLOSED_PWM_VALUE)  * percentage_open);
-	_servo_controller->setPWM(SERVO_CHANNEL,v);
+	servoI2C::SetPWM(SERVO_CHANNEL,0,(int)v);
 }
 
 int servo::GetAnalogInput(int adc_channel)
