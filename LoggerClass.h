@@ -1,3 +1,7 @@
+#include <SoftwareSerial.h>
+#include <stdlib.h>
+
+#define EVENT_DESCRIPTION_MAX_CHARS (64)
 
 template <class T>
 class Queue {
@@ -65,7 +69,7 @@ struct Event
   StateType currentState;
   StateType nextState;
   Queue<int> data;
-  String description;
+  char description[EVENT_DESCRIPTION_MAX_CHARS];
   unsigned long timestamp;
 };
 
@@ -76,6 +80,7 @@ struct EventQuery
 
 class Logger
 {
+  private:
   volatile bool _is_locked;
   
   bool IsLocked() const {return _is_locked;}
@@ -84,6 +89,13 @@ class Logger
   
   Queue<Event> _log;
   Queue<Event> _to_add;
+
+
+  void PrintEvent(SoftwareSerial & s, Event & e)
+  {
+    s.println(e.description);
+  }
+  
   
   void WaitForAccess()
   {
@@ -106,7 +118,7 @@ class Logger
     _log.push_back(e);
     ReleaseAccess();
   }
-  
+  public:
   Queue<Event> GetEvents(EventQuery & query)
   {
     WaitForAccess();
@@ -122,20 +134,15 @@ class Logger
     ReleaseAccess();
   }
   
-  void PrintEvent(Event & e)
-  {
-    Serial.println(e.description);
-  }
-  
   //called by periodic thread
-  void ProcessLog()
+  void ProcessLog(SoftwareSerial & s)
   {
-    Serial.println("logger thread - ProcessLog");
+    s.println("logger thread - ProcessLog");
     for (int i = 0; i < _to_add.size(); i++)
     {
       Event e = TakeFromAddList();
       AddToLog(e);
-      PrintEvent(e);
+      PrintEvent(s,e);
     }
   }
 };
