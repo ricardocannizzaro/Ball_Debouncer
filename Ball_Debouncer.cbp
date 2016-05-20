@@ -42,6 +42,8 @@
 		<Unit filename="PCA9685.cpp" />
 		<Unit filename="PCA9685.h" />
 		<Unit filename="main.cpp" />
+		<Unit filename="mcp3008Spi.cpp" />
+		<Unit filename="mcp3008Spi.h" />
 		<Unit filename="rgb_lcd.cpp" />
 		<Unit filename="rgb_lcd.h" />
 		<Unit filename="servo.cpp" />

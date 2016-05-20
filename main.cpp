@@ -32,6 +32,7 @@
  */
 
 #include <stdio.h>
+#include <iostream>
 #include <string>
 #include <errno.h>
 #include <stdlib.h>
@@ -40,6 +41,9 @@
 #include "servo.h"
 #include "rgb_lcd.h"
 #include <vector>
+#include <wiringPiSPI.h>
+
+using namespace std;
 
 // globalCounter:
 //	Global variable to count interrupts
@@ -218,15 +222,70 @@ int main (void)
 
   wiringPiSetup () ;
 
-  wiringPiISR (PIN_LIGHT_SENSOR, INT_EDGE_FALLING, &lightSensorInterrupt) ;
-  wiringPiISR (1, INT_EDGE_FALLING, &myInterrupt1) ;
-  wiringPiISR (2, INT_EDGE_FALLING, &myInterrupt2) ;
-  wiringPiISR (3, INT_EDGE_FALLING, &myInterrupt3) ;
-  wiringPiISR (4, INT_EDGE_FALLING, &myInterrupt4) ;
-  wiringPiISR (5, INT_EDGE_FALLING, &myInterrupt5) ;
-  wiringPiISR (6, INT_EDGE_FALLING, &myInterrupt6) ;
-  wiringPiISR (7, INT_EDGE_FALLING, &myInterrupt7) ;
+  //wiringPiISR (PIN_LIGHT_SENSOR, INT_EDGE_FALLING, &lightSensorInterrupt) ;
+  //wiringPiISR (1, INT_EDGE_FALLING, &myInterrupt1) ;
+  //wiringPiISR (2, INT_EDGE_FALLING, &myInterrupt2) ;
+  //wiringPiISR (3, INT_EDGE_FALLING, &myInterrupt3) ;
+  //wiringPiISR (4, INT_EDGE_FALLING, &myInterrupt4) ;
+  //wiringPiISR (5, INT_EDGE_FALLING, &myInterrupt5) ;
+ // wiringPiISR (6, INT_EDGE_FALLING, &myInterrupt6) ;
+ // wiringPiISR (7, INT_EDGE_FALLING, &myInterrupt7) ;
 
+
+  // set up ADC
+   /*mcp3008Spi a2d("/dev/spidev0.0", SPI_MODE_0, 1000000, 8);
+
+    int a2dVal = 0;
+    int a2dChannel = 0;
+    unsigned char data[3];
+
+
+        data[0] = 1;  //  first byte transmitted -> start bit
+        data[1] = 0b10000000 |( ((a2dChannel & 7) << 4)); // second byte transmitted -> (SGL/DIF = 1, D2=D1=D0=0)
+        data[2] = 0; // third byte transmitted....don't care
+
+        a2d.spiWriteRead(data, sizeof(data) );
+
+        a2dVal = 0;
+        a2dVal = (data[1]<< 8) & 0b1100000000; //merge data[1] & data[2] to get result
+        a2dVal |=  (data[2] & 0xff);
+
+
+        printf ("The Result is: ", a2dVal,"\n") ;*/
+
+    //#define BASE 100
+    //#define SPI_CHAN 0
+
+    unsigned char buffer[100] = {};
+    int result;
+    int SPI_CHANNEL = 0;
+    int speed = 1000000;
+    char ADC_channel0 = 0b00001000;
+    char ADC_channel1 = 0b00001001;
+    char ADC_channel2 = 0b00001010;
+    char ADC_channel3 = 0b00001011;
+    char ADC_channel4 = 0b00001100;
+    char ADC_channel5 = 0b00001101;
+    char ADC_channel6 = 0b00001110;
+    char ADC_channel7 = 0b00001111;
+
+
+    wiringPiSPISetup(SPI_CHANNEL, speed);
+
+    pinMode(25, OUTPUT);
+    digitalWrite(25, LOW);
+
+    for(int i = 0; i < 20; i++){
+        buffer[0] = 0xff;
+        buffer[1] = ADC_channel0;
+        digitalWrite(25, HIGH);
+        delay(50);
+        result = wiringPiSPIDataRW(SPI_CHANNEL, buffer, 2);
+        digitalWrite(25, LOW);
+        cout << "Channel 0: " << buffer[0] + buffer[1] << endl;
+        delay(50);
+    }
+    digitalWrite(25, LOW);
   //setup servo (static object)
   servo::Initialise();
   servo::Open();                // initialise to open
@@ -369,6 +428,5 @@ float pos;
 		return 0;
 	}
   }
-
   return 0 ;
 }
