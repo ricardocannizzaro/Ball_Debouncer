@@ -36,12 +36,16 @@ static struct pt ptLogger, ptStateMachine; // each protothread needs one of thes
  * Interrupts:
  *********************************************************************************
  */
- volatile int LightInterruptTriggered = 0;
+volatile int LightInterruptTriggered = 0;
+
+/*
+ * Logger Object:
+ *********************************************************************************
+ */
+ static LoggerClass MyLogger;  // declare the system logger object
 
 void setup() {
-  Queue<int> test_queue = Queue<int>();
-  Logger L = Logger();
-
+  MyLogger = LoggerClass(); // initialise logger object
   // put your setup code here, to run once:
   SYSTEM_STATE = STARTING_UP;
   // initialize serial communication at 9600 bits per second:
@@ -52,7 +56,8 @@ void setup() {
   
   pinMode(LIGHT_SENSOR_INTERRUPT_PIN, INPUT_PULLUP);
   attachInterrupt(digitalPinToInterrupt(LIGHT_SENSOR_INTERRUPT_PIN), LightInterruptServiceRoutine, FALLING);
-  
+
+  Serial.print("setup done\n");
   SYSTEM_STATE = WAITING_FOR_BOUNCE;  // put state machine into waiting for bounce state
 }
 
@@ -87,7 +92,10 @@ static int protothreadLogger(struct pt *pt, int interval) {
     Serial.print("protothreadLogger triggered at: ");
     Serial.print(timestamp);
     Serial.print("\n");
+
     toggleLED();
+
+    //MyLogger.ProcessLog(Serial);  // process any events on the queue
   }
   PT_END(pt);
 }
@@ -108,7 +116,21 @@ static int protothreadStateMachine(struct pt *pt, int interval) {
       //interrupts();
       // TODO - add timeout logic
       if(LightInterruptTriggered==1){
-        // since light interrupt has been triggered, we can move onto the next state
+        // since light interrupt has been triggered, 
+      
+        // create interrupt event, then send it to logger input queue
+        Serial.print("\tCreating new event...\n");
+        Event newEvent = {};
+        newEvent.type = LIGHT_SENSOR_FALLING_EDGE_EVENT;
+        newEvent.currentState = WAITING_FOR_BOUNCE;
+        newEvent.nextState = DEBOUNCING;
+        newEvent.data = {};
+        snprintf(newEvent.description, EVENT_DESCRIPTION_MAX_CHARS, "LIGHT_SENSOR_FALLING_EDGE_EVENT. Transitioning to debouncing state.");
+        newEvent.timestamp = millis();
+
+        //MyLogger.LogEvent(newEvent);
+        
+        //we can move onto the next state
         Serial.print("\tTransitioning to debouncing state...\n");
         SYSTEM_STATE = DEBOUNCING;
       }
@@ -208,6 +230,6 @@ static int protothreadStateMachine(struct pt *pt, int interval) {
 
 void loop() {
   // put your main code here, to run repeatedly:
-  //protothreadLogger(&ptLogger, 900); // schedule the two protothreads
+  protothreadLogger(&ptLogger, 1000); // schedule the two protothreads
   protothreadStateMachine(&ptStateMachine, 1000); // by calling them infinitely
 }
