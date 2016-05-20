@@ -1,6 +1,7 @@
 #include <Servo.h>
 #include <pt.h>   // include protothread library
 #include "Enums.h"
+//#include "LoggerClass.cpp"
 
 
 /*
@@ -12,25 +13,31 @@
 #define MAX_NUM_ADD_REQUESTS       10
 #define MAX_NUM_GET_REQUESTS       10
 
+
 enum STATE SYSTEM_STATE;
 
 /*
- * Pins:
+ * GPIOS:
  *********************************************************************************
  */
-#define LIGHT_SENSOR_PIN    0  // pin connected to light sensor for interrupt triggering
-#define SERVO_CONTROL_PIN   9  // pin to control the servo with PWM
-#define LED_PIN            13  // pin to control the light
+#define LIGHT_SENSOR_INTERRUPT_PIN    2  // pin connected to light sensor for interrupt triggering
+#define SERVO_CONTROL_PIN             9  // pin to control the servo with PWM
+#define LED_PIN                      13  // pin to control the light
 
 // A 'key' which we can lock and unlock 
 //#define LOGGER_KEY 0
 
 /*
- * Pins:
+ * Protothreading:
  *********************************************************************************
  */
 static struct pt ptLogger, ptStateMachine; // each protothread needs one of these
 
+/*
+ * Interrupts:
+ *********************************************************************************
+ */
+ volatile int LightInterruptTriggered = 0;
 
 void setup() {
   // put your setup code here, to run once:
@@ -41,22 +48,20 @@ void setup() {
   PT_INIT(&ptLogger);  // initialise the two
   PT_INIT(&ptStateMachine);  // protothread variables
   
-  /*
-   * Interrupts:
-   *********************************************************************************
-   */
-   
-  /*
-  void lightSensorInterrupt (void) { ++globalCounter [PIN_LIGHT_SENSOR] ; }
-  void myInterrupt1 (void) { ++globalCounter [1] ; }
-  void myInterrupt2 (void) { ++globalCounter [2] ; }
-  void myInterrupt3 (void) { ++globalCounter [3] ; }
-  void myInterrupt4 (void) { ++globalCounter [4] ; }
-  void myInterrupt5 (void) { ++globalCounter [5] ; }
-  void myInterrupt6 (void) { ++globalCounter [6] ; }
-  void myInterrupt7 (void) { ++globalCounter [7] ; }*/
+  pinMode(LIGHT_SENSOR_INTERRUPT_PIN, INPUT_PULLUP);
+  attachInterrupt(digitalPinToInterrupt(LIGHT_SENSOR_INTERRUPT_PIN), LightInterruptServiceRoutine, FALLING);
+  
   SYSTEM_STATE = WAITING_FOR_BOUNCE;  // put state machine into waiting for bounce state
 }
+
+// function to set LightInterruptTriggered to high
+void LightInterruptServiceRoutine(){
+  if(LightInterruptTriggered==0){
+    Serial.print("Light Interrupt Service Routine has been triggered...\n");
+  }
+  LightInterruptTriggered = 1;
+}
+
 
 // function to toggle the LED_PIN output
 void toggleLED() {
@@ -84,6 +89,7 @@ static int protothreadLogger(struct pt *pt, int interval) {
   }
   PT_END(pt);
 }
+
 /* exactly the same as the protothread1 function */
 static int protothreadStateMachine(struct pt *pt, int interval) {
   static unsigned long timestamp = 0;
@@ -97,9 +103,15 @@ static int protothreadStateMachine(struct pt *pt, int interval) {
     
     if(SYSTEM_STATE == WAITING_FOR_BOUNCE){
       Serial.print("Waiting for bounce...\n");
-      //TODO fix logic to check for state transition
-      Serial.print("\tTransitioning to debouncing state...\n");
-      SYSTEM_STATE = DEBOUNCING;
+      //interrupts();
+      // TODO - add timeout logic
+      if(LightInterruptTriggered==1){
+        // since light interrupt has been triggered, we can move onto the next state
+        Serial.print("\tTransitioning to debouncing state...\n");
+        SYSTEM_STATE = DEBOUNCING;
+      }
+      
+      //noInterrupts();
     }
     else if(SYSTEM_STATE == DEBOUNCING){
       Serial.print ("Debouncing...\n") ;
@@ -172,6 +184,7 @@ static int protothreadStateMachine(struct pt *pt, int interval) {
       // enter WAITING_FOR_BOUNCE state
       Serial.print ("\tTransitioning to waiting for bounce state...\n\n") ;
       SYSTEM_STATE = WAITING_FOR_BOUNCE;
+      LightInterruptTriggered = 0; // reset for next time
     }
     else if(SYSTEM_STATE == ENDING_PROGRAM){
       Serial.print  ("Ending program\n") ;
