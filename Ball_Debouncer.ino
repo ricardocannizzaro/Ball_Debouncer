@@ -1,8 +1,7 @@
 #include <Servo.h>
 #include <pt.h>   // include protothread library
 #include "Enums.h"
-//#include "LoggerClass.cpp"
-
+#include "LoggerClass.h"
 
 /*
  * System Variables:
@@ -40,6 +39,9 @@ static struct pt ptLogger, ptStateMachine; // each protothread needs one of thes
  volatile int LightInterruptTriggered = 0;
 
 void setup() {
+  Queue<int> test_queue = Queue<int>();
+  Logger L = Logger();
+
   // put your setup code here, to run once:
   SYSTEM_STATE = STARTING_UP;
   // initialize serial communication at 9600 bits per second:
