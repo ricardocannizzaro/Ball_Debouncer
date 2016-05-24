@@ -24,8 +24,8 @@
 #define CRITICAL_DEBOUNCE_ERROR_AMOUNT (3)
 
 //TODO: check these
-#define SERVO_OPEN_VALUE (0)
-#define SERVO_CLOSE_VALUE (180)
+#define SERVO_OPEN_VALUE (180)
+#define SERVO_CLOSE_VALUE (0)
 #define LIGHT_SENSOR_BALL_HELD_MIN_VALUE (100) //value has to between min and max for a ball to be held by bin
 #define LIGHT_SENSOR_BALL_HELD_MAX_VALUE (400) //value has to between min and max for a ball to be held by bin
  
@@ -81,6 +81,7 @@ void setup() {
 
   //set pin modes and interrupts
   pinMode(LED_PIN, OUTPUT); // LED init
+  digitalWrite(LED_PIN, 1); // turn on LED
   pinMode(LIGHT_SENSOR_INTERRUPT_PIN, INPUT_PULLUP);
   pinMode(LID_DOWN_SWITCH_PIN, INPUT_PULLUP);
   attachInterrupt(digitalPinToInterrupt(LIGHT_SENSOR_INTERRUPT_PIN), LightInterruptServiceRoutine, FALLING);
@@ -110,7 +111,8 @@ void servo_close()
 
 bool servo_is_closed()
 {
-  return (LidDownInterruptTriggered == 1);
+  return true;
+  //return (LidDownInterruptTriggered == 1);
 }
 
 bool light_sensor_ball_held_in_bin()
@@ -118,7 +120,8 @@ bool light_sensor_ball_held_in_bin()
   int light_v = analogRead(LIGHT_SENSOR_BALL_HELD_PIN);
   bool result =  (light_v > LIGHT_SENSOR_BALL_HELD_MIN_VALUE
   && light_v < LIGHT_SENSOR_BALL_HELD_MAX_VALUE);
-  return result;
+  //return result;
+  return true;
 }
 
 // function to set LightInterruptTriggered to high
@@ -161,7 +164,7 @@ static int protothreadLogger(struct pt *pt, int interval) {
     Serial.print(timestamp);
     Serial.print("\n");
 
-    toggleLED();
+    //toggleLED();
 
     MyLogger.ProcessLog(Serial);  // process any events on the queue
   }
@@ -209,7 +212,7 @@ static int protothreadStateMachine(struct pt *pt, int interval) {
                                       DEBOUNCING,
                                       "LIGHT_SENSOR_FALLING_EDGE_EVENT. Transitioning to debouncing state.");
 
-        MyLogger.LogEvent(newEvent);
+        //MyLogger.LogEvent(newEvent);
 
         bounce_interrupt_time = millis();
         //we can move onto the next state
@@ -221,7 +224,7 @@ static int protothreadStateMachine(struct pt *pt, int interval) {
     }
     else if(SYSTEM_STATE == DEBOUNCING){
       Serial.print ("debouncing\n") ;
-      toggleLED();
+      //toggleLED();
 
       //TODO: this is being called every time.. it only needs to be called once on state initial entry...
       servo_close(); 
@@ -235,7 +238,7 @@ static int protothreadStateMachine(struct pt *pt, int interval) {
             // move to check result state
             Event myEvent = event_create((EVENT_TYPE)0,SYSTEM_STATE,CHECKING_RESULT,
                                         "Lid closed, debnc-> check result");
-            MyLogger.LogEvent(myEvent);
+            //MyLogger.LogEvent(myEvent);
             Serial.print("->checking result state...\n");
             SYSTEM_STATE = CHECKING_RESULT;  // update the system state 
           }
@@ -247,7 +250,7 @@ static int protothreadStateMachine(struct pt *pt, int interval) {
             printf ("servo close timed out\n") ;
             Event myEvent = event_create((EVENT_TYPE)0,SYSTEM_STATE,EMERGENCY_STOP,
                                          "Error: servo did not close during debouncing");
-            MyLogger.LogEvent(myEvent);
+            //MyLogger.LogEvent(myEvent);
             SYSTEM_STATE = EMERGENCY_STOP;  // update the system state
           }
       }
@@ -304,6 +307,9 @@ static int protothreadStateMachine(struct pt *pt, int interval) {
         {
           //success
           Serial.print("success.\n");
+          //enter restart state
+          Serial.print ("\tchecking->restarting\n") ;
+          SYSTEM_STATE = RESTARTING;
         }
         else
         {
@@ -327,7 +333,7 @@ static int protothreadStateMachine(struct pt *pt, int interval) {
       LidDownInterruptTriggered = 0;
     }
     else if(SYSTEM_STATE == RESTARTING){
-      toggleLED();
+      //toggleLED();
       Serial.print ("Restarting / preparing for next bounce...\n") ;
       //LCD::Clear();
       //LCD::Print("Restarting / preparing for next bounce\n");
