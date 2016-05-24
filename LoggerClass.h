@@ -1,71 +1,15 @@
+#include <QueueList.h>
 #include <HardwareSerial.h>
 #include <stdlib.h>
 
 #define EVENT_DESCRIPTION_MAX_CHARS (64)
 
-template <class T>
-class Queue {
-  T * _data;
-  T * _start;
-  int _numEvents;
-  int _size;
-  public:
-  Queue()
-  {
-    _data = (T*)malloc(_size * sizeof(T));
-    _size = 32;
-    _start = _data;
-    _numEvents = 0;
-  }
-  ~Queue()
-  {
-    free(_start); // destroy from the start of the array
-  } 
-  void push_back(T event)
-  {
-    if (_numEvents >= _size)
-    {
-      _size = _size * 2;
-      _data = (T* )realloc(_data, _size * sizeof(T));
-      _start = _data;
-    }
-    _data[_numEvents] = event;
-    _numEvents++;
-  }
-  T back()
-  {
-    if (_size > 0)
-    {
-      return _data[_numEvents-1];
-    }
-    else
-    {
-      T result = {};
-      return result;
-    }
-  }
-  void pop_back()
-  {
-    _numEvents--;
-  }
-  T front()
-  {
-    return _data[0];
-  }
-  void pop_front()
-  {
-    _data++;
-    _numEvents--;
-  }
-  unsigned int size(){return _numEvents;}
-};
-  
 struct Event
 {
   EVENT_TYPE type;
   STATE currentState;
   STATE nextState;
-  Queue<int> data;
+  QueueList<int> data;
   char description[EVENT_DESCRIPTION_MAX_CHARS];
   unsigned long timestamp;
 };
@@ -80,58 +24,84 @@ class LoggerClass
   private:
   volatile bool _is_locked;
   
-  bool IsLocked() const {return _is_locked;}
-  void Lock(){_is_locked = true;}
-  void ReleaseAccess(){_is_locked = false;}
+  bool IsLocked() const 
+  {
+    return _is_locked;
+  }
+    
+  void Lock()
+  {
+    _is_locked = true;
+  }
   
-  Queue<Event> _log;
-  Queue<Event> _to_add;
-
+  void ReleaseAccess()
+  {
+    _is_locked = false;
+  }
+  
+  QueueList<Event> _log;
+  QueueList<Event> _to_add;
 
   void PrintEvent(HardwareSerial & s, Event & e)
   {
     s.println(e.description);
   }
   
-  
-  void WaitForAccess()
+  bool CanAccess()
   {
-    while(IsLocked()){};
-    Lock();
-  }
-  
-  Event TakeFromAddList()
-  {
-    WaitForAccess();
-    Event result = _to_add.back();
-    _to_add.pop_back();
-    ReleaseAccess();
+    bool result = !IsLocked();
+    if (result)
+    {
+      Lock();
+    }
     return result;
   }
-  
-  void AddToLog(Event & e)
+
+  //return true if successful
+  bool TakeFromAddList(Event & out_event)
   {
-    WaitForAccess();
-    _log.push_back(e);
-    ReleaseAccess();
+    if (CanAccess())
+    {
+      out_event = _to_add.pop();
+      ReleaseAccess();
+      return true;
+    }
+    return false;
   }
+  
+  bool AddToLog(Event e)
+  {
+    if (CanAccess())
+    {
+      _log.push(e);
+      ReleaseAccess();
+      return true;
+    }
+   return false; 
+  }
+  
   public:
-  
-  Queue<Event> GetEvents(EventQuery & query)
+  //TODO: implement this
+  bool GetEvents(EventQuery query, QueueList<Event> & out_event_list)
   {
-    WaitForAccess();
-    Queue<Event> & result = _log;
-    ReleaseAccess();  
-    return result;
+    //WaitForAccess();
+    //QueueList<Event> & result = _log;
+    //ReleaseAccess();  
+    return false;
   }
+
   
-  void LogEvent(Event & event)
+  bool LogEvent(Event event)
   {
     Serial.println("attempting to log event...waiting for access...");
-    WaitForAccess();
-    _to_add.push_back(event); 
-    Serial.println("done logging event...releasing access...");
-    ReleaseAccess();
+    if (CanAccess())
+    {
+      _to_add.push(event); 
+      Serial.println("done logging event...releasing access...");
+      ReleaseAccess();
+      return true;
+    }
+    return false;
   }
   
   //called by periodic thread
@@ -139,13 +109,16 @@ class LoggerClass
   {
     s.println("logger thread - ProcessLog");
     s.print("size of to_add: ");
-    s.print(_to_add.size());
+    s.print(_to_add.count());
     s.print("\n");
-    for (int i = 0; i < _to_add.size(); i++)
+    for (int i = 0; i < _to_add.count(); i++)
     {
-      Event e = TakeFromAddList();
-      AddToLog(e);
-      PrintEvent(s,e);
+      Event e = {};
+      if (TakeFromAddList(e))
+      {
+        AddToLog(e);
+        PrintEvent(s,e);
+      } 
     }
   }
 
